@@ -1,4 +1,5 @@
-﻿using FivetranClient;
+﻿using System.Text;
+using FivetranClient;
 using Import.Helpers.Fivetran;
 
 namespace Import.ConnectionSupport;
@@ -12,9 +13,18 @@ public class FivetranConnectionSupport : IConnectionSupport
     public object? GetConnectionDetailsForSelection()
     {
         Console.Write("Provide your Fivetran API Key: ");
-        var apiKey = Console.ReadLine() ?? throw new ArgumentNullException();
+        var apiKey = Console.ReadLine();
+        if (string.IsNullOrWhiteSpace(apiKey))
+        {
+            throw new ArgumentNullException(apiKey, "API Key cannot be null or white space");
+        }
+
         Console.Write("Provide your Fivetran API Secret: ");
-        var apiSecret = Console.ReadLine() ?? throw new ArgumentNullException();
+        var apiSecret = Console.ReadLine();
+        if (string.IsNullOrWhiteSpace(apiSecret))
+        {
+            throw new ArgumentNullException(apiSecret, "API Secret cannot be null or white space");
+        }
 
         return new FivetranConnectionDetailsForSelection(apiKey, apiSecret);
     }
@@ -65,14 +75,14 @@ public class FivetranConnectionSupport : IConnectionSupport
         }
 
         // bufforing for performance
-        var consoleOutputBuffer = "";
-        consoleOutputBuffer += "Available groups in Fivetran account:\n";
+        var consoleOutputBuffer = new StringBuilder();
+        consoleOutputBuffer.AppendLine("Available groups in Fivetran account:");
         var elementIndex = 1;
         foreach (var group in groups)
         {
-            consoleOutputBuffer += $"{elementIndex++}. {group.Name} (ID: {group.Id})\n";
+            consoleOutputBuffer.AppendLine($"{elementIndex++}. {group.Name} (ID: {group.Id})");
         }
-        consoleOutputBuffer += "Please select a group to import from (by number): ";
+        consoleOutputBuffer.Append("Please select a group to import from (by number): ");
         Console.Write(consoleOutputBuffer);
         var input = Console.ReadLine();
         if (string.IsNullOrWhiteSpace(input)
@@ -105,7 +115,8 @@ public class FivetranConnectionSupport : IConnectionSupport
             throw new Exception("No connectors found in the selected group.");
         }
 
-        var allMappingsBuffer = "Lineage mappings:\n";
+        var allMappingsBuffer = new StringBuilder();
+        allMappingsBuffer.AppendLine("Lineage mappings:");
         Parallel.ForEach(connectors, connector =>
         {
             var connectorSchemas = restApiManager
@@ -116,7 +127,7 @@ public class FivetranConnectionSupport : IConnectionSupport
             {
                 foreach (var table in schema.Value?.Tables ?? [])
                 {
-                    allMappingsBuffer += $"  {connector.Id}: {schema.Key}.{table.Key} -> {schema.Value?.NameInDestination}.{table.Value.NameInDestination}\n";
+                    allMappingsBuffer.AppendLine($"  {connector.Id}: {schema.Key}.{table.Key} -> {schema.Value?.NameInDestination}.{table.Value.NameInDestination}");
                 }
             }
         });

@@ -15,12 +15,7 @@ public class RestApiManager(HttpRequestHandler requestHandler) : IDisposable
     public static readonly Uri ApiBaseUrl = new("https://api.fivetran.com/v1/");
 
     public RestApiManager(string apiKey, string apiSecret, TimeSpan timeout)
-        : this(ApiBaseUrl, apiKey, apiSecret, timeout)
-    {
-    }
-
-    public RestApiManager(Uri baseUrl, string apiKey, string apiSecret, TimeSpan timeout)
-        : this(new FivetranHttpClient(baseUrl, apiKey, apiSecret, timeout), true)
+        : this(CreateClient(ApiBaseUrl, apiKey, apiSecret, timeout), true)
     {
     }
 
@@ -54,5 +49,23 @@ public class RestApiManager(HttpRequestHandler requestHandler) : IDisposable
     {
         _createdClient?.Dispose();
         GC.SuppressFinalize(this);
+    }
+
+    private static HttpClient CreateClient(Uri baseUrl, string apiKey, string apiSecret, TimeSpan timeout)
+    {
+        if (baseUrl is null)
+            throw new ArgumentNullException(nameof(baseUrl));
+
+        if (string.IsNullOrWhiteSpace(apiKey))
+            throw new ArgumentNullException(nameof(apiKey));
+
+        if (string.IsNullOrEmpty(apiSecret))
+            throw new ArgumentNullException(nameof(apiSecret));
+
+        if (timeout.Ticks <= 0)
+            throw new ArgumentOutOfRangeException(nameof(timeout), "Timeout must be a positive value");
+
+        var client = new FivetranHttpClient(baseUrl, apiKey, apiSecret, timeout);
+        return client;
     }
 }
